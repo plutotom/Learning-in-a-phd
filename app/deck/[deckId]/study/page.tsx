@@ -153,7 +153,19 @@ export default function StudyPage() {
     progress[current.id] = next;
     saveProgress(progress);
 
-    advanceQueue();
+    if (rating === 0) {
+      // "Again" — put card back at the end of the session queue
+      const rest = queue.slice(1);
+      const requeuedQueue = [...rest, current];
+      setQueue(requeuedQueue);
+      setRemaining(requeuedQueue.length);
+      setRevealed(false);
+      setSelectedOption(null);
+      setCurrent(requeuedQueue[0] ?? null);
+      if (requeuedQueue.length === 0) setDone(true);
+    } else {
+      advanceQueue();
+    }
   }
 
   function advanceQueue() {

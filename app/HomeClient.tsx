@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { getDecks, saveDecks, getProgress, getTodayKey, getSettings } from "@/lib/storage";
 import { isDue } from "@/lib/sm2";
 import { AI_PROMPT } from "@/lib/ai-prompt";
+import { seedIfEmpty } from "@/lib/seed";
 import type { Deck, DecksData } from "@/lib/types";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
@@ -19,6 +20,7 @@ export default function HomeClient() {
   const importRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    seedIfEmpty();
     loadDecks();
   }, []);
 

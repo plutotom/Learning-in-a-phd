@@ -35,7 +35,7 @@ export function applyRating(
   let { interval, easinessFactor, repetitions } = progress;
 
   if (q < 3) {
-    // Fail — reset
+    // Fail — reset, card is due immediately (comes back in same session)
     interval = 1;
     repetitions = 0;
   } else {
@@ -55,7 +55,10 @@ export function applyRating(
   if (easinessFactor < 1.3) easinessFactor = 1.3;
 
   const dueDate = new Date();
-  dueDate.setDate(dueDate.getDate() + interval);
+  // "Again" (q < 3) cards are due immediately so they stay due if user reopens
+  if (q >= 3) {
+    dueDate.setDate(dueDate.getDate() + interval);
+  }
 
   const state =
     repetitions === 0 ? "learning" : interval >= 21 ? "review" : "learning";
