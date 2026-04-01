@@ -287,10 +287,9 @@ export default function HomeClient() {
               <div className="mt-3 flex gap-2">
                 <button
                   onClick={() => router.push(`/deck/${deck.id}/study`)}
-                  disabled={due === 0}
-                  className="flex-1 rounded-xl bg-indigo-600 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-40"
+                  className="flex-1 rounded-xl bg-indigo-600 py-2.5 text-sm font-medium text-white hover:bg-indigo-700"
                 >
-                  Study {due > 0 ? `(${due})` : ""}
+                  Study {due > 0 ? `(${due} due)` : ""}
                 </button>
                 <button
                   onClick={() => router.push(`/deck/${deck.id}/browse`)}
