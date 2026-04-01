@@ -61,6 +61,7 @@ export default function StudyPage() {
   const router = useRouter();
 
   const [queue, setQueue] = useState<Card[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [current, setCurrent] = useState<Card | null>(null);
   const [remaining, setRemaining] = useState(0);
   const [revealed, setRevealed] = useState(false);
@@ -79,6 +80,28 @@ export default function StudyPage() {
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      if (e.key === "ArrowLeft" && queue.length > 1 && currentIndex > 0) {
+        e.preventDefault();
+        const i = currentIndex - 1;
+        setCurrentIndex(i);
+        setCurrent(queue[i]);
+        setRevealed(false);
+        setSelectedOption(null);
+        return;
+      }
+      if (
+        e.key === "ArrowRight" &&
+        queue.length > 1 &&
+        currentIndex < queue.length - 1
+      ) {
+        e.preventDefault();
+        const i = currentIndex + 1;
+        setCurrentIndex(i);
+        setCurrent(queue[i]);
+        setRevealed(false);
+        setSelectedOption(null);
+        return;
+      }
       if (e.key === " " && !revealed && current) {
         e.preventDefault();
         if (current.type !== "mcq") setRevealed(true);
@@ -93,7 +116,7 @@ export default function StudyPage() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [revealed, current]);
+  }, [revealed, current, currentIndex, queue]);
 
   function buildQueue() {
     const data = getDecks();
@@ -138,8 +161,25 @@ export default function StudyPage() {
 
     setQueue(q);
     setRemaining(q.length);
+    setCurrentIndex(0);
     setCurrent(q[0] ?? null);
     setDone(false);
+  }
+
+  function goToQueueIndex(i: number) {
+    if (i < 0 || i >= queue.length) return;
+    setCurrentIndex(i);
+    setCurrent(queue[i]);
+    setRevealed(false);
+    setSelectedOption(null);
+  }
+
+  function goPrevCard() {
+    goToQueueIndex(currentIndex - 1);
+  }
+
+  function goNextCard() {
+    goToQueueIndex(currentIndex + 1);
   }
 
   function rate(rating: Rating) {
@@ -168,31 +208,31 @@ export default function StudyPage() {
 
     if (rating === 0) {
       // "Again" — put card back at the end of the session queue
-      const rest = queue.slice(1);
-      const requeuedQueue = [...rest, current];
+      const before = queue.slice(0, currentIndex);
+      const after = queue.slice(currentIndex + 1);
+      const requeuedQueue = [...before, ...after, current];
       setQueue(requeuedQueue);
       setRemaining(requeuedQueue.length);
       setRevealed(false);
       setSelectedOption(null);
-      setCurrent(requeuedQueue[0] ?? null);
-      if (requeuedQueue.length === 0) setDone(true);
+      const nextCard = requeuedQueue[currentIndex] ?? null;
+      setCurrent(nextCard);
+      if (!nextCard) setDone(true);
     } else {
-      advanceQueue();
-    }
-  }
+      const newQueue = queue.filter((_, i) => i !== currentIndex);
+      setQueue(newQueue);
+      setRemaining(newQueue.length);
+      setRevealed(false);
+      setSelectedOption(null);
 
-  function advanceQueue() {
-    const nextQueue = queue.slice(1);
-    setQueue(nextQueue);
-    setRemaining(nextQueue.length);
-    setRevealed(false);
-    setSelectedOption(null);
-
-    if (nextQueue.length === 0) {
-      setDone(true);
-      setCurrent(null);
-    } else {
-      setCurrent(nextQueue[0]);
+      if (newQueue.length === 0) {
+        setDone(true);
+        setCurrent(null);
+      } else {
+        const idx = Math.min(currentIndex, newQueue.length - 1);
+        setCurrentIndex(idx);
+        setCurrent(newQueue[idx]);
+      }
     }
   }
 
@@ -209,6 +249,7 @@ export default function StudyPage() {
     const newQueue = [card, ...queue];
     setQueue(newQueue);
     setRemaining(newQueue.length);
+    setCurrentIndex(0);
     setCurrent(card);
     setRevealed(false);
     setSelectedOption(null);
@@ -277,6 +318,11 @@ export default function StudyPage() {
           ← {deckName}
         </Link>
         <div className="flex items-center gap-3">
+          {queue.length > 1 && (
+            <span className="text-sm text-gray-400">
+              {currentIndex + 1} / {queue.length}
+            </span>
+          )}
           <span className="text-sm text-gray-500">{remaining} remaining</span>
           {undoRef.current && (
             <button
@@ -299,8 +345,34 @@ export default function StudyPage() {
         />
       </div>
 
-      {/* Card */}
-      <div className="min-h-[280px] rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+      {/* Card + side navigation (multi-card sessions only) */}
+      <div className="flex items-stretch gap-2 sm:gap-3">
+        {queue.length > 1 ? (
+          <button
+            type="button"
+            onClick={goPrevCard}
+            disabled={currentIndex <= 0}
+            aria-label="Previous card in session"
+            title="Previous card (←)"
+            className="flex w-10 shrink-0 items-center justify-center rounded-2xl border border-gray-200 bg-white text-gray-500 shadow-sm transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-gray-200 disabled:hover:bg-white disabled:hover:text-gray-500 sm:w-11"
+          >
+            <svg
+              className="h-7 w-7"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              viewBox="0 0 24 24"
+              aria-hidden
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+          </button>
+        ) : null}
+        <div className="min-h-[280px] min-w-0 flex-1 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
         {current.type === "basic" && (
           <div className="space-y-4">
             <div>
@@ -370,6 +442,32 @@ export default function StudyPage() {
             </div>
           </div>
         )}
+        </div>
+        {queue.length > 1 ? (
+          <button
+            type="button"
+            onClick={goNextCard}
+            disabled={currentIndex >= queue.length - 1}
+            aria-label="Next card in session"
+            title="Next card (→)"
+            className="flex w-10 shrink-0 items-center justify-center rounded-2xl border border-gray-200 bg-white text-gray-500 shadow-sm transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-gray-200 disabled:hover:bg-white disabled:hover:text-gray-500 sm:w-11"
+          >
+            <svg
+              className="h-7 w-7"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              viewBox="0 0 24 24"
+              aria-hidden
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          </button>
+        ) : null}
       </div>
 
       {/* Actions */}
