@@ -67,6 +67,7 @@ export default function StudyPage() {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [done, setDone] = useState(false);
   const [deckName, setDeckName] = useState("");
+  const [earlyReview, setEarlyReview] = useState(false);
 
   // Undo state stored in memory only
   const undoRef = useRef<{ card: Card; progress: CardProgress } | null>(null);
@@ -117,16 +118,28 @@ export default function StudyPage() {
       }
     }
 
-    // Shuffle
-    q.sort(() => Math.random() - 0.5);
+    if (q.length > 0) {
+      // Normal SRS session — shuffle due cards
+      q.sort(() => Math.random() - 0.5);
+      setEarlyReview(false);
+    } else {
+      // Nothing due — fall back to all cards sorted by next due date
+      // so the user can keep studying without being hard-blocked
+      const all = [...deck.cards].sort((a, b) => {
+        const pa = progress[a.id];
+        const pb = progress[b.id];
+        const ta = pa ? new Date(pa.dueDate).getTime() : 0;
+        const tb = pb ? new Date(pb.dueDate).getTime() : 0;
+        return ta - tb;
+      });
+      q.push(...all);
+      setEarlyReview(true);
+    }
 
     setQueue(q);
     setRemaining(q.length);
-    if (q.length > 0) {
-      setCurrent(q[0]);
-    } else {
-      setDone(true);
-    }
+    setCurrent(q[0] ?? null);
+    setDone(false);
   }
 
   function rate(rating: Rating) {
@@ -207,22 +220,36 @@ export default function StudyPage() {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <p className="text-5xl">🎉</p>
-        <h2 className="mt-4 text-2xl font-bold">You&apos;re done for today!</h2>
-        <p className="mt-2 text-gray-500">All cards reviewed for {deckName}.</p>
-        {undoRef.current && (
+        <h2 className="mt-4 text-2xl font-bold">
+          {earlyReview ? "Session complete!" : "You're done for today!"}
+        </h2>
+        <p className="mt-2 text-gray-500">
+          {earlyReview
+            ? "All cards reviewed."
+            : "All due cards reviewed for " + deckName + "."}
+        </p>
+        <div className="mt-6 flex flex-col gap-3">
+          {undoRef.current && (
+            <button
+              onClick={undo}
+              className="rounded-xl border border-gray-200 px-5 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50"
+            >
+              Undo last rating
+            </button>
+          )}
           <button
-            onClick={undo}
-            className="mt-4 rounded-xl border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+            onClick={buildQueue}
+            className="rounded-xl border border-indigo-200 px-5 py-2.5 text-sm font-medium text-indigo-600 hover:bg-indigo-50"
           >
-            Undo last rating
+            Study again
           </button>
-        )}
-        <Link
-          href="/"
-          className="mt-6 rounded-xl bg-indigo-600 px-6 py-3 text-sm font-medium text-white hover:bg-indigo-700"
-        >
-          Back to home
-        </Link>
+          <Link
+            href="/"
+            className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700"
+          >
+            Back to home
+          </Link>
+        </div>
       </div>
     );
   }
@@ -238,6 +265,12 @@ export default function StudyPage() {
 
   return (
     <div className="space-y-4">
+      {/* Early review banner */}
+      {earlyReview && (
+        <div className="rounded-xl bg-amber-50 px-4 py-2.5 text-sm text-amber-700">
+          No cards due yet — reviewing early. Ratings still count.
+        </div>
+      )}
       {/* Top bar */}
       <div className="flex items-center justify-between">
         <Link href="/" className="text-sm text-gray-500 hover:text-gray-800">
