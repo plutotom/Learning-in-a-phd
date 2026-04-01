@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -24,6 +24,16 @@ import Link from "next/link";
 function parseCloze(text: string): { text: string; isBlank: boolean }[] {
   const parts = text.split(/\{\{([^}]+)\}\}/g);
   return parts.map((part, i) => ({ text: part, isBlank: i % 2 === 1 }));
+}
+
+/** Permutation mapping display index → original option index (Fisher–Yates). */
+function shuffleOptionOrder(length: number): number[] {
+  const order = Array.from({ length }, (_, i) => i);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  return order;
 }
 
 function ClozeDisplay({
@@ -69,6 +79,18 @@ export default function StudyPage() {
   const [done, setDone] = useState(false);
   const [deckName, setDeckName] = useState("");
   const [earlyReview, setEarlyReview] = useState(false);
+
+  const mcqDisplayOrder = useMemo(() => {
+    if (!current || current.type !== "mcq" || current.options.length === 0) {
+      return [] as number[];
+    }
+    return shuffleOptionOrder(current.options.length);
+  }, [
+    currentIndex,
+    current?.id,
+    current?.type,
+    current?.type === "mcq" ? current.options.length : 0,
+  ]);
 
   // Undo state stored in memory only
   const undoRef = useRef<{ card: Card; progress: CardProgress } | null>(null);
@@ -297,6 +319,11 @@ export default function StudyPage() {
 
   if (!current) return null;
 
+  const mcqCorrectDisplayIndex =
+    current.type === "mcq" && mcqDisplayOrder.length === current.options.length
+      ? mcqDisplayOrder.indexOf(current.answer)
+      : -1;
+
   const ratingColors: Record<Rating, string> = {
     0: "bg-red-500 hover:bg-red-600 text-white",
     1: "bg-orange-400 hover:bg-orange-500 text-white",
@@ -405,18 +432,19 @@ export default function StudyPage() {
           <div className="space-y-4">
             <p className="text-lg font-medium">{current.question}</p>
             <div className="space-y-2">
-              {current.options.map((opt, i) => {
+              {mcqDisplayOrder.map((originalIndex, displayIndex) => {
+                const opt = current.options[originalIndex];
                 let cls =
                   "w-full rounded-xl border px-4 py-3 text-left text-sm font-medium transition-colors ";
                 if (!revealed) {
                   cls +=
-                    selectedOption === i
+                    selectedOption === displayIndex
                       ? "border-indigo-400 bg-indigo-50 text-indigo-700"
                       : "border-gray-200 hover:bg-gray-50";
                 } else {
-                  if (i === current.answer) {
+                  if (displayIndex === mcqCorrectDisplayIndex) {
                     cls += "border-green-400 bg-green-50 text-green-800";
-                  } else if (selectedOption === i) {
+                  } else if (selectedOption === displayIndex) {
                     cls += "border-red-300 bg-red-50 text-red-700";
                   } else {
                     cls += "border-gray-100 text-gray-400";
@@ -424,16 +452,16 @@ export default function StudyPage() {
                 }
                 return (
                   <button
-                    key={i}
+                    key={originalIndex}
                     className={cls}
                     disabled={revealed}
                     onClick={() => {
-                      setSelectedOption(i);
+                      setSelectedOption(displayIndex);
                       setRevealed(true);
                     }}
                   >
                     <span className="mr-2 font-bold">
-                      {String.fromCharCode(65 + i)}.
+                      {String.fromCharCode(65 + displayIndex)}.
                     </span>
                     {opt}
                   </button>
