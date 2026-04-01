@@ -17,6 +17,8 @@ export default function HomeClient() {
   const [newDeckName, setNewDeckName] = useState("");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [showImportForm, setShowImportForm] = useState(false);
+  const [importText, setImportText] = useState("");
   const importRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -93,36 +95,54 @@ export default function HomeClient() {
     toast.success("Export complete");
   }
 
+  function processImport(importedData: unknown) {
+    const imported = importedData as DecksData;
+    if (!imported || !Array.isArray(imported.decks)) throw new Error("Invalid format");
+
+    const existing = getDecks();
+    const existingIds = new Set(existing.decks.map((d) => d.id));
+
+    for (const deck of imported.decks) {
+      // Reassign UUIDs to avoid collisions
+      const newDeckId = crypto.randomUUID();
+      const renamedCards = deck.cards.map((c) => ({
+        ...c,
+        id: crypto.randomUUID(),
+      }));
+      existing.decks.push({
+        ...deck,
+        id: newDeckId,
+        cards: renamedCards,
+      });
+      void existingIds; // suppress lint
+    }
+
+    saveDecks(existing);
+    loadDecks();
+    toast.success(`Imported ${imported.decks.length} deck(s)`);
+  }
+
+  function handleTextImport() {
+    try {
+      if (!importText.trim()) throw new Error("Empty text");
+      const parsed = JSON.parse(importText);
+      processImport(parsed);
+      setImportText("");
+      setShowImportForm(false);
+    } catch {
+      toast.error("Import failed — invalid JSON format");
+    }
+  }
+
   function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
-        const imported = JSON.parse(ev.target?.result as string) as DecksData;
-        if (!Array.isArray(imported.decks)) throw new Error("Invalid format");
-
-        const existing = getDecks();
-        const existingIds = new Set(existing.decks.map((d) => d.id));
-
-        for (const deck of imported.decks) {
-          // Reassign UUIDs to avoid collisions
-          const newDeckId = crypto.randomUUID();
-          const renamedCards = deck.cards.map((c) => ({
-            ...c,
-            id: crypto.randomUUID(),
-          }));
-          existing.decks.push({
-            ...deck,
-            id: newDeckId,
-            cards: renamedCards,
-          });
-          void existingIds; // suppress lint
-        }
-
-        saveDecks(existing);
-        loadDecks();
-        toast.success(`Imported ${imported.decks.length} deck(s)`);
+        const parsed = JSON.parse(ev.target?.result as string);
+        processImport(parsed);
+        setShowImportForm(false);
       } catch {
         toast.error("Import failed — invalid JSON format");
       }
@@ -150,8 +170,12 @@ export default function HomeClient() {
             Copy AI Prompt
           </button>
           <button
-            onClick={() => importRef.current?.click()}
-            className="rounded-xl border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-100"
+            onClick={() => setShowImportForm(!showImportForm)}
+            className={`rounded-xl border px-3 py-2 text-xs font-medium hover:bg-gray-100 ${
+              showImportForm
+                ? "border-indigo-200 bg-indigo-50 text-indigo-700"
+                : "border-gray-200 text-gray-600"
+            }`}
           >
             Import
           </button>
@@ -170,6 +194,49 @@ export default function HomeClient() {
           />
         </div>
       </div>
+
+      {/* Import form */}
+      {showImportForm && (
+        <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm animate-in fade-in slide-in-from-top-2">
+          <label className="mb-1.5 block text-sm font-medium text-gray-700">
+            Paste JSON data
+          </label>
+          <textarea
+            value={importText}
+            onChange={(e) => setImportText(e.target.value)}
+            placeholder='{"decks": [...]}'
+            className="mb-3 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 min-h-[120px] resize-y"
+          />
+          <div className="flex gap-2 items-center justify-between">
+            <button
+              onClick={() => setShowImportForm(false)}
+              className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => importRef.current?.click()}
+                className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 flex flex-row items-center gap-1.5 hover:bg-gray-50"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-upload">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" x2="12" y1="3" y2="15"/>
+                </svg>
+                Upload File
+              </button>
+              <button
+                onClick={handleTextImport}
+                disabled={!importText.trim()}
+                className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+              >
+                Import Text
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Deck list */}
       {decks.length === 0 && !showCreateForm && (
