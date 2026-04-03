@@ -2,6 +2,7 @@ import type { DecksData } from "./types";
 import { getDecks, saveDecks } from "./storage";
 
 const SEED_DECK: DecksData = {
+  folders: [],
   decks: [
     {
       id: "seed-deck-srs-intro",

@@ -9,12 +9,14 @@ const KEYS = {
 // --- Decks ---
 
 export function getDecks(): DecksData {
-  if (typeof window === "undefined") return { decks: [] };
+  if (typeof window === "undefined") return { decks: [], folders: [] };
   try {
     const raw = localStorage.getItem(KEYS.decks);
-    return raw ? JSON.parse(raw) : { decks: [] };
+    if (!raw) return { decks: [], folders: [] };
+    const parsed = JSON.parse(raw);
+    return { decks: parsed.decks ?? [], folders: parsed.folders ?? [] };
   } catch {
-    return { decks: [] };
+    return { decks: [], folders: [] };
   }
 }
 
