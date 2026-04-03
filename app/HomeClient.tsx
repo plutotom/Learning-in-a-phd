@@ -37,6 +37,7 @@ export default function HomeClient() {
   const [renamingFolderId, setRenamingFolderId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [movingDeckId, setMovingDeckId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
   const importRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -351,7 +352,11 @@ export default function HomeClient() {
     );
   }
 
-  const unfolderedDecks = decks.filter((d) => !d.folderId);
+  const query = search.trim().toLowerCase();
+  const filteredDecks = query
+    ? decks.filter((d) => d.name.toLowerCase().includes(query))
+    : decks;
+  const unfolderedDecks = filteredDecks.filter((d) => !d.folderId);
   const hasContent = decks.length > 0 || folders.length > 0;
 
   return (
@@ -450,6 +455,31 @@ export default function HomeClient() {
         </div>
       )}
 
+      {/* Search */}
+      {hasContent && (
+        <div className="relative">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+          </svg>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search decks…"
+            className="w-full rounded-xl border border-gray-200 py-2.5 pl-9 pr-4 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 6 6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Empty state */}
       {!hasContent && !showCreateForm && !showCreateFolderForm && (
         <div className="rounded-2xl border-2 border-dashed border-gray-200 py-16 text-center text-gray-400">
@@ -462,7 +492,8 @@ export default function HomeClient() {
       {/* Folders */}
       <div className="space-y-3">
         {folders.map((folder) => {
-          const folderDecks = decks.filter((d) => d.folderId === folder.id);
+          const folderDecks = filteredDecks.filter((d) => d.folderId === folder.id);
+          if (query && folderDecks.length === 0) return null;
           const isCollapsed = collapsedFolders.has(folder.id);
           const isRenaming = renamingFolderId === folder.id;
           const folderDue = folderDecks.reduce(
