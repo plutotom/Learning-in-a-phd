@@ -33,9 +33,16 @@ export type CardInput =
   | Omit<ClozeCard, "id" | "createdAt">
   | Omit<McqCard, "id" | "createdAt">;
 
+export interface Folder {
+  id: string;
+  name: string;
+  createdAt: string;
+}
+
 export interface Deck {
   id: string;
   name: string;
+  folderId?: string;
   newCardsPerDay: number;
   createdAt: string;
   cards: Card[];
@@ -43,6 +50,7 @@ export interface Deck {
 
 export interface DecksData {
   decks: Deck[];
+  folders: Folder[];
 }
 
 export interface CardProgress {
