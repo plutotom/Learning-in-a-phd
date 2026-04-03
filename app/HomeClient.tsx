@@ -3,7 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { getDecks, saveDecks, getProgress, getTodayKey, getSettings } from "@/lib/storage";
+import {
+  getDecks,
+  saveDecks,
+  getProgress,
+  getTodayKey,
+  getSettings,
+} from "@/lib/storage";
 import { isDue } from "@/lib/sm2";
 import { AI_PROMPT } from "@/lib/ai-prompt";
 import { seedIfEmpty } from "@/lib/seed";
@@ -20,10 +26,14 @@ export default function HomeClient() {
   const [showCreateFolderForm, setShowCreateFolderForm] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
-  const [deleteFolderTarget, setDeleteFolderTarget] = useState<string | null>(null);
+  const [deleteFolderTarget, setDeleteFolderTarget] = useState<string | null>(
+    null,
+  );
   const [showImportForm, setShowImportForm] = useState(false);
   const [importText, setImportText] = useState("");
-  const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
+  const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(
+    new Set(),
+  );
   const [renamingFolderId, setRenamingFolderId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [movingDeckId, setMovingDeckId] = useState<string | null>(null);
@@ -58,6 +68,7 @@ export default function HomeClient() {
       counts[deck.id] = due;
     }
     setDueCounts(counts);
+    setCollapsedFolders(new Set(data.folders.map((f) => f.id)));
   }
 
   function createDeck(e: React.FormEvent) {
@@ -120,7 +131,7 @@ export default function HomeClient() {
     data.folders = data.folders.filter((f) => f.id !== folderId);
     // Orphan decks to root rather than deleting them
     data.decks = data.decks.map((d) =>
-      d.folderId === folderId ? { ...d, folderId: undefined } : d
+      d.folderId === folderId ? { ...d, folderId: undefined } : d,
     );
     saveDecks(data);
     setDeleteFolderTarget(null);
@@ -177,7 +188,8 @@ export default function HomeClient() {
 
   function processImport(importedData: unknown) {
     const imported = importedData as DecksData;
-    if (!imported || !Array.isArray(imported.decks)) throw new Error("Invalid format");
+    if (!imported || !Array.isArray(imported.decks))
+      throw new Error("Invalid format");
 
     const existing = getDecks();
 
@@ -196,7 +208,9 @@ export default function HomeClient() {
         ...deck,
         id: crypto.randomUUID(),
         cards: deck.cards.map((c) => ({ ...c, id: crypto.randomUUID() })),
-        folderId: deck.folderId ? (folderIdMap[deck.folderId] ?? undefined) : undefined,
+        folderId: deck.folderId
+          ? (folderIdMap[deck.folderId] ?? undefined)
+          : undefined,
       });
     }
 
@@ -243,7 +257,10 @@ export default function HomeClient() {
   function renderDeckCard(deck: Deck) {
     const due = dueCounts[deck.id] ?? 0;
     return (
-      <div key={deck.id} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+      <div
+        key={deck.id}
+        className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm"
+      >
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="font-semibold">{deck.name}</h2>
@@ -261,12 +278,24 @@ export default function HomeClient() {
             {folders.length > 0 && (
               <div className="relative">
                 <button
-                  onClick={() => setMovingDeckId(movingDeckId === deck.id ? null : deck.id)}
+                  onClick={() =>
+                    setMovingDeckId(movingDeckId === deck.id ? null : deck.id)
+                  }
                   title="Move to folder"
                   className="rounded-lg px-2 py-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                   </svg>
                 </button>
                 {movingDeckId === deck.id && (
@@ -326,7 +355,12 @@ export default function HomeClient() {
   const hasContent = decks.length > 0 || folders.length > 0;
 
   return (
-    <div className="space-y-6" onClick={() => { if (movingDeckId) setMovingDeckId(null); }}>
+    <div
+      className="space-y-6"
+      onClick={() => {
+        if (movingDeckId) setMovingDeckId(null);
+      }}
+    >
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">FlashSRS</h1>
@@ -387,10 +421,20 @@ export default function HomeClient() {
                 onClick={() => importRef.current?.click()}
                 className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 flex flex-row items-center gap-1.5 hover:bg-gray-50"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="17 8 12 3 7 8"/>
-                  <line x1="12" x2="12" y1="3" y2="15"/>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" x2="12" y1="3" y2="15" />
                 </svg>
                 Upload File
               </button>
@@ -421,23 +465,52 @@ export default function HomeClient() {
           const folderDecks = decks.filter((d) => d.folderId === folder.id);
           const isCollapsed = collapsedFolders.has(folder.id);
           const isRenaming = renamingFolderId === folder.id;
-          const folderDue = folderDecks.reduce((sum, d) => sum + (dueCounts[d.id] ?? 0), 0);
+          const folderDue = folderDecks.reduce(
+            (sum, d) => sum + (dueCounts[d.id] ?? 0),
+            0,
+          );
 
           return (
-            <div key={folder.id} className="overflow-hidden rounded-2xl border border-gray-200">
+            <div
+              key={folder.id}
+              className="overflow-hidden rounded-2xl border border-gray-200"
+            >
               {/* Folder header */}
               <div className="flex items-center gap-2 bg-gray-50 px-4 py-3">
                 <button
                   onClick={() => toggleFolder(folder.id)}
                   className="text-gray-400 hover:text-gray-600 transition-transform"
-                  style={{ transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)" }}
+                  style={{
+                    transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)",
+                  }}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="6 9 12 15 18 9"/>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="6 9 12 15 18 9" />
                   </svg>
                 </button>
-                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500 shrink-0">
-                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-gray-500 shrink-0"
+                >
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                 </svg>
                 {isRenaming ? (
                   <input
@@ -482,7 +555,8 @@ export default function HomeClient() {
                 <div className="space-y-2 bg-gray-50/40 p-3">
                   {folderDecks.length === 0 ? (
                     <p className="py-2 text-center text-sm italic text-gray-400">
-                      No decks — drag a deck here or use the folder icon on a deck
+                      No decks — drag a deck here or use the folder icon on a
+                      deck
                     </p>
                   ) : (
                     folderDecks.map((deck) => renderDeckCard(deck))
