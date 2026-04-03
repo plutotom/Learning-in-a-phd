@@ -6,7 +6,8 @@
     "dev": "next dev --port 5123",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "migrate": "node scripts/migrate.mjs"
   },
   "dependencies": {
     "better-auth": "^1.5.6",
