@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { UserButton } from "@clerk/nextjs";
 import {
   getDecks,
   saveDecks,
@@ -369,7 +370,7 @@ export default function HomeClient() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">FlashSRS</h1>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <button
             onClick={copyAiPrompt}
             className="rounded-xl border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-100"
@@ -399,6 +400,7 @@ export default function HomeClient() {
             className="hidden"
             onChange={handleImport}
           />
+          <UserButton />
         </div>
       </div>
 
