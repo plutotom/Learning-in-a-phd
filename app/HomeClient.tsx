@@ -187,6 +187,34 @@ export default function HomeClient() {
     toast.success("Export complete");
   }
 
+  function exportDeck(deck: Deck) {
+    const payload = { decks: [deck], folders: [] };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${deck.name.replace(/\s+/g, "-").toLowerCase()}-${getTodayKey()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Exported "${deck.name}"`);
+  }
+
+  function exportFolder(folder: Folder, folderDecks: Deck[]) {
+    const payload = { decks: folderDecks, folders: [folder] };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${folder.name.replace(/\s+/g, "-").toLowerCase()}-${getTodayKey()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Exported folder "${folder.name}" (${folderDecks.length} deck${folderDecks.length !== 1 ? "s" : ""})`);
+  }
+
   function processImport(importedData: unknown) {
     const imported = importedData as DecksData;
     if (!imported || !Array.isArray(imported.decks))
@@ -320,6 +348,17 @@ export default function HomeClient() {
                 )}
               </div>
             )}
+            <button
+              onClick={(e) => { e.stopPropagation(); exportDeck(deck); }}
+              title="Export deck"
+              className="rounded-lg px-2 py-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" x2="12" y1="15" y2="3" />
+              </svg>
+            </button>
             <button
               onClick={() => router.push(`/deck/${deck.id}/edit`)}
               className="rounded-lg px-2.5 py-1.5 text-xs text-gray-500 hover:bg-gray-100"
@@ -573,6 +612,17 @@ export default function HomeClient() {
                     {folderDue} due
                   </span>
                 )}
+                <button
+                  onClick={(e) => { e.stopPropagation(); exportFolder(folder, folderDecks); }}
+                  title="Export folder"
+                  className="shrink-0 rounded-lg px-2 py-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" x2="12" y1="15" y2="3" />
+                  </svg>
+                </button>
                 <button
                   onClick={() => setDeleteFolderTarget(folder.id)}
                   className="shrink-0 rounded-lg px-2 py-1 text-xs text-red-400 hover:bg-red-50"
