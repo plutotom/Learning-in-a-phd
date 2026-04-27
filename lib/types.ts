@@ -48,6 +48,14 @@ export interface Deck {
   cards: Card[];
 }
 
+export interface DeckTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  newCardsPerDay?: number;
+  cards: CardInput[];
+}
+
 export interface DecksData {
   decks: Deck[];
   folders: Folder[];

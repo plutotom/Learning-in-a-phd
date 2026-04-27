@@ -13,6 +13,10 @@ import {
 import { isDue } from "@/lib/sm2";
 import { AI_PROMPT } from "@/lib/ai-prompt";
 import { seedIfEmpty } from "@/lib/seed";
+import {
+  DECK_LIBRARY_TEMPLATES,
+  instantiateDeckFromTemplate,
+} from "@/lib/deck-library";
 import type { Deck, DecksData, Folder } from "@/lib/types";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
@@ -38,6 +42,7 @@ export default function HomeClient() {
   const [renameValue, setRenameValue] = useState("");
   const [movingDeckId, setMovingDeckId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -283,6 +288,59 @@ export default function HomeClient() {
     });
   }
 
+  function addTemplateToLibrary(templateId: string) {
+    const template = DECK_LIBRARY_TEMPLATES.find((item) => item.id === templateId);
+    if (!template) {
+      toast.error("Template not found");
+      return;
+    }
+    const data = getDecks();
+    data.decks.push(instantiateDeckFromTemplate(template));
+    saveDecks(data);
+    loadDecks();
+    setIsLibraryOpen(false);
+    toast.success(`Added "${template.name}" to your library`);
+  }
+
+  function renderDeckLibrary(isMobile = false) {
+    return (
+      <div
+        className={`rounded-2xl border border-gray-200 bg-white p-4 shadow-sm ${
+          isMobile ? "h-full overflow-y-auto rounded-none border-0 p-5 shadow-none" : ""
+        }`}
+      >
+        <div className="mb-3">
+          <h2 className="text-sm font-semibold text-gray-900">Deck Library</h2>
+          <p className="mt-1 text-xs text-gray-500">
+            Shared templates you can add to your own decks.
+          </p>
+        </div>
+        <div className="space-y-3">
+          {DECK_LIBRARY_TEMPLATES.map((template) => (
+            <div
+              key={template.id}
+              className="rounded-xl border border-gray-100 bg-gray-50/60 p-3"
+            >
+              <p className="text-sm font-medium text-gray-800">{template.name}</p>
+              {template.description && (
+                <p className="mt-1 text-xs text-gray-500">{template.description}</p>
+              )}
+              <p className="mt-1 text-xs text-gray-400">
+                {template.cards.length} cards
+              </p>
+              <button
+                onClick={() => addTemplateToLibrary(template.id)}
+                className="mt-2 w-full rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
+              >
+                Add to my library
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   function renderDeckCard(deck: Deck) {
     const due = dueCounts[deck.id] ?? 0;
     return (
@@ -399,15 +457,24 @@ export default function HomeClient() {
   const hasContent = decks.length > 0 || folders.length > 0;
 
   return (
-    <div
-      className="space-y-6"
-      onClick={() => {
-        if (movingDeckId) setMovingDeckId(null);
-      }}
-    >
+    <div>
+      <div
+        className="space-y-6"
+        onClick={() => {
+          if (movingDeckId) setMovingDeckId(null);
+        }}
+      >
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">FlashSRS</h1>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsLibraryOpen(true)}
+            className="rounded-xl border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-100"
+          >
+            Library
+          </button>
+          <h1 className="text-2xl font-bold">FlashSRS</h1>
+        </div>
         <div className="flex gap-2">
           <button
             onClick={copyAiPrompt}
@@ -753,6 +820,29 @@ export default function HomeClient() {
           onConfirm={() => deleteFolder(deleteFolderTarget)}
           onCancel={() => setDeleteFolderTarget(null)}
         />
+      )}
+      </div>
+
+      {isLibraryOpen && (
+        <div className="fixed inset-0 z-40 bg-gray-900/35">
+          <button
+            className="h-full w-full cursor-default"
+            aria-label="Close deck library"
+            onClick={() => setIsLibraryOpen(false)}
+          />
+          <div className="absolute left-0 top-0 h-full w-[86%] max-w-sm bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+              <h3 className="text-sm font-semibold text-gray-900">Deck Library</h3>
+              <button
+                onClick={() => setIsLibraryOpen(false)}
+                className="rounded-lg border border-gray-200 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100"
+              >
+                Close
+              </button>
+            </div>
+            {renderDeckLibrary(true)}
+          </div>
+        </div>
       )}
     </div>
   );
